@@ -65,7 +65,7 @@ def plot_dtw(D, wp, seq1_len, seq2_len):
     plt.show()
 
 
-def eval_phrase(ref: Score, target: Score, eval_output_path: Optional[Path] = None, skip_align_when_length_equal=True):
+def eval_phrase(ref: Score, target: Score, eval_output_path: Optional[Path] = None, skip_align_when_length_equal=True, show=False):
     """
     Evaluate similarity between target and reference using the F1 score -- precision and recall.
     What proportion of notes in the reference were correctly recalled in the target (recall), and
@@ -98,8 +98,9 @@ def eval_phrase(ref: Score, target: Score, eval_output_path: Optional[Path] = No
     ref_proll_aligned, target_proll_aligned, repeated_mask = get_aligned_prolls(ref_proll, target_proll, wp)
     samplewise_score, f1_score_pitch = get_score(ref_proll_aligned, target_proll_aligned, repeated_mask)
     # print(f"{f1_score_pitch = :.2f}, {added_bar_count = }, {removed_bar_count = }")
-    if eval_output_path is not None:
-        plot_prolls(ref_proll_aligned, target_proll_aligned, repeated_mask, samplewise_score, f1_score_pitch, eval_output_path.with_suffix(".png"))
+    if show or eval_output_path is not None:
+        output_path = None if eval_output_path is None else eval_output_path.with_suffix(".png")
+        plot_prolls(ref_proll_aligned, target_proll_aligned, repeated_mask, samplewise_score, f1_score_pitch, output_path, show)
 
     # Evaluate with hand-specific pianoroll
     hand_scores: dict[str, float] = {}
@@ -261,7 +262,7 @@ def f1_score_samplewise(y_true, y_pred, *, beta=1.0, labels=None, pos_label=1, a
     )
     return f_score
 
-def plot_prolls(ref_aligned, target_aligned, repeated_mask, samplewise_score, mean_score, output_path):
+def plot_prolls(ref_aligned, target_aligned, repeated_mask, samplewise_score, mean_score, output_path, show=False):
     refb = ref_aligned.astype(bool)
     tarb = target_aligned.astype(bool)
     merged_pr = np.zeros_like(refb, dtype=float)
@@ -296,8 +297,10 @@ def plot_prolls(ref_aligned, target_aligned, repeated_mask, samplewise_score, me
     plt.tight_layout()
     # plt.subplots_adjust(left=0, bottom=0, right=1, top=1, wspace=0, hspace=0)
     # plt.show()
-    plt.savefig(output_path, dpi=300)
-    plt.close(fig)
+    if output_path:
+        plt.savefig(output_path, dpi=300)
+    if not show:
+        plt.close(fig)
 
 
 def get_measure_count(score: Score):
